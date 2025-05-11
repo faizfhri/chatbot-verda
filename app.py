@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import os
 from sentence_transformers import SentenceTransformer, util
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
@@ -14,7 +15,7 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 # === 2. Konfigurasi Supabase dan Chutes ===
 SUPABASE_FAQ_URL = "https://gncwiljqegllybkibmeq.supabase.co/functions/v1/rag-chatbot"
 CHUTES_API_URL = "https://llm.chutes.ai/v1/chat/completions"
-CHUTES_API_KEY = "cpk_cc614f8fd2a146668c59746ad8eac5cd.4b7eb952162e5bdb834624b7b92697e2.AKb67a3uzktXRINVFEYDI5Cncx22v5aD"
+CHUTES_API_KEY = os.getenv("CHUTES_API_KEY")
 
 # === 3. Fungsi untuk memanggil model via Chutes ===
 def call_chutes_model(prompt):
