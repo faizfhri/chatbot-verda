@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # === 1. Inisialisasi Embedding Model ===
-embedding_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # === 2. Konfigurasi Supabase dan Chutes ===
 SUPABASE_FAQ_URL = "https://gncwiljqegllybkibmeq.supabase.co/functions/v1/rag-chatbot"
