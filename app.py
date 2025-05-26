@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)
 
 # === Embedding dan Memory ===
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = embedding_model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
 memory = ConversationBufferMemory(k=3)
 
 # === Konfigurasi Supabase dan Chutes ===
