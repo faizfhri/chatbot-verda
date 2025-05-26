@@ -2,9 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-from sentence_transformers import SentenceTransformer, util
-from langchain.prompts import PromptTemplate
-from langchain.memory import ConversationBufferMemory
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import pytorch_cos_sim
 
 app = Flask(__name__)
 CORS(app)
@@ -47,67 +46,69 @@ def call_chutes_model(prompt):
 # === 4. Ambil dan cari data dari Supabase ===
 def retrieve_answer(query, top_k=3):
     try:
-        response = requests.get(SUPABASE_FAQ_URL)
+        query_embedding = embedding_model.encode(query).tolist()
+
+        response = requests.post(
+            SUPABASE_FAQ_URL,
+            json={"query_embedding": query_embedding, "match_count": top_k}
+        )
+
         if response.status_code != 200:
-            return "Gagal mengambil data dari Supabase."
+            return f"Gagal mengambil data dari Supabase: {response.status_code}"
 
         faqs = response.json()
         if not faqs:
-            return "Tidak ada data FAQ di Supabase."
+            return "Tidak ada data relevan yang ditemukan."
 
-        query_embedding = embedding_model.encode(query, convert_to_tensor=True)
-        faq_texts = [f"{faq['question']} {faq['answer']}" for faq in faqs]
-        faq_embeddings = embedding_model.encode(faq_texts, convert_to_tensor=True)
-
-        scores = util.pytorch_cos_sim(query_embedding, faq_embeddings)[0]
-        top_results = scores.topk(k=top_k)
-
-        context_list = []
-        for idx in top_results.indices:
-            faq = faqs[int(idx)]
-            context_list.append(f"{faq.get('answer', '')}")
-
-        return "\n".join(context_list) if context_list else "Tidak ada informasi yang relevan."
+        context_list = [faq.get("answer", "") for faq in faqs]
+        return "\n".join(context_list)
 
     except Exception as e:
         return f"Terjadi kesalahan saat mengambil data: {str(e)}"
 
-# === 5. Prompt Template ===
-prompt_template = PromptTemplate(
-    input_variables=["query", "context"],
-    template=(
+# === 5. Format Prompt Tanpa Langchain ===
+def format_prompt(query, context):
+    return (
         "Anda adalah chatbot edukasi berkelanjutan yang menjawab pertanyaan mahasiswa dengan informasi yang akurat.\n"
         "Gunakan hanya informasi dari konteks berikut dan jangan mengarang jawaban.\n"
         "Jika tidak ada informasi, jawab kamu tidak memiliki informasi tersebut dengan sopan.\n\n"
-        "Konteks:\n{context}\n\n"
-        "Pertanyaan:\n{query}\n\n"
+        f"Konteks:\n{context}\n\n"
+        f"Pertanyaan:\n{query}\n\n"
         "Jawaban (gunakan format yang rapi dan informatif, tanpa menggunakan markdown seperti **bold**, _italic_, atau format khusus lainnya):\n"
     )
-)
 
-memory = ConversationBufferMemory(k=0)
+# === 6. State sederhana untuk menyimpan 1 history (opsional) ===
+chat_history = []
 
-# === 6. Endpoint untuk Chatbot ===
+# === 7. Endpoint untuk Chatbot ===
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    user_message = data.get("message", "")
+    user_message = data.get("message", "").strip()
 
     if not user_message:
         return jsonify({"response": "Pesan tidak boleh kosong."})
 
+    # Ambil jawaban dari Supabase (top-k FAQ)
     context = retrieve_answer(user_message, top_k=3)
-    memory.save_context({"query": user_message}, {"response": context})
-    history = memory.load_memory_variables({}).get("history", "")
 
-    formatted_prompt = prompt_template.format(query=user_message, context=f"{history}\n{context}")
-    response_text = call_chutes_model(formatted_prompt)
-    memory.save_context({"query": user_message}, {"response": response_text})
+    # Tambahkan ke history lokal
+    chat_history.append({"query": user_message, "response": context})
+    if len(chat_history) > 2:
+        chat_history.pop(0)
+
+    # Gabungkan semua respons sebelumnya (jika mau pakai konteks historis)
+    combined_context = "\n".join([item["response"] for item in chat_history])
+    prompt = format_prompt(user_message, combined_context)
+
+    # Panggil LLM
+    response_text = call_chutes_model(prompt)
+
+    # Simpan respons aktual ke history
+    chat_history[-1]["response"] = response_text
 
     return jsonify({"response": response_text})
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
-

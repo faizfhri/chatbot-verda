@@ -2,5 +2,4 @@ flask
 flask-cors
 requests
 sentence-transformers
-langchain
 gunicorn
