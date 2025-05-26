@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir numpy==1.26.4
 
 # Install torch CPU-only dengan versi yang mendukung transformers terbaru
-RUN pip install --no-cache-dir torch==2.3.0+cpu torchvision==0.18.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install --no-cache-dir torch==2.2.1+cpu torchvision==0.17.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 # Install dependensi lain
 RUN pip install --no-cache-dir -r requirements.txt

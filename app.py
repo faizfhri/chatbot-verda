@@ -2,11 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-import time
-import threading
-from collections import deque
 from sentence_transformers import SentenceTransformer, util
 from langchain.prompts import PromptTemplate
+from langchain.memory import ConversationBufferMemory
 
 app = Flask(__name__)
 CORS(app)
@@ -87,36 +85,9 @@ prompt_template = PromptTemplate(
     )
 )
 
-# === 6. Custom Memory Buffer ===
-class LimitedConversationBufferMemory:
-    def __init__(self, limit=3):
-        self.buffer = deque(maxlen=limit)
+memory = ConversationBufferMemory(k=0)
 
-    def save_context(self, inputs, outputs):
-        self.buffer.append((inputs, outputs))
-
-    def load_memory_variables(self, inputs):
-        history_text = ""
-        for (inp, out) in self.buffer:
-            history_text += f"User: {inp['query']}\nBot: {out['response']}\n"
-        return {"history": history_text}
-
-    def clear(self):
-        self.buffer.clear()
-
-memory = LimitedConversationBufferMemory(limit=3)
-
-# === 7. Pembersih Memory Setiap 30 Menit ===
-def periodic_clear(interval_minutes=30):
-    while True:
-        time.sleep(interval_minutes * 60)
-        memory.clear()
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Memory cleared.")
-
-clear_thread = threading.Thread(target=periodic_clear, daemon=True)
-clear_thread.start()
-
-# === 8. Endpoint untuk Chatbot ===
+# === 6. Endpoint untuk Chatbot ===
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
@@ -135,7 +106,8 @@ def chat():
 
     return jsonify({"response": response_text})
 
-# === 9. Run Server ===
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
