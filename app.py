@@ -74,7 +74,7 @@ def format_prompt(query, context):
         "Jika tidak ada informasi, jawab kamu tidak memiliki informasi tersebut dengan sopan.\n\n"
         f"Konteks:\n{context}\n\n"
         f"Pertanyaan:\n{query}\n\n"
-        "Jawaban (gunakan format yang rapi dan informatif, tanpa menggunakan markdown seperti **bold**, _italic_, atau format khusus lainnya):\n"
+        "Jawaban (gunakan format yang rapi dan informatif, tanpa menggunakan markdown seperti **bold**, _italic_, atau format khusus lainnya dan kalau ada [cite: angka random] itu hilangkan):\n"
     )
 
 # === 6. State sederhana untuk menyimpan 1 history (opsional) ===
