@@ -60,13 +60,16 @@ def retrieve_answer(query, top_k=3):
         if not faqs:
             return "Tidak ada data relevan yang ditemukan."
 
-        context_list = [faq.get("answer", "") for faq in faqs]
+        context_list = [
+            f"- {faq.get('answer', '')} (Referensi: {faq.get('reference', 'tidak tersedia')})"
+            for faq in faqs
+        ]
         return "\n".join(context_list)
 
     except Exception as e:
         return f"Terjadi kesalahan saat mengambil data: {str(e)}"
 
-# === 5. Format Prompt Tanpa Langchain ===
+# === 5. Format Prompt ===
 def format_prompt(query, context):
     return (
         "Anda adalah chatbot edukasi berkelanjutan yang menjawab pertanyaan mahasiswa dengan informasi yang akurat.\n"
@@ -74,7 +77,7 @@ def format_prompt(query, context):
         "Jika tidak ada informasi, jawab kamu tidak memiliki informasi tersebut dengan sopan.\n\n"
         f"Konteks:\n{context}\n\n"
         f"Pertanyaan:\n{query}\n\n"
-        "Jawaban (gunakan format yang rapi dan informatif, tanpa menggunakan markdown seperti **bold**, _italic_, atau format khusus lainnya dan kalau ada [cite: angka random] itu hilangkan):\n"
+        "Jawaban (gunakan format yang rapi dan informatif, tanpa menggunakan markdown seperti **bold**, _italic_, atau format khusus lainnya dan kalau ada [cite: angka random] itu hilangkan, (sebutkan referensinya dalam bentuk link, jika tidak tersedia jangan tampilkan)):\n"
     )
 
 # === 6. State sederhana untuk menyimpan 1 history (opsional) ===
